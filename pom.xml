@@ -89,17 +89,6 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>com.github.almasb</groupId>
-            <artifactId>fxgl</artifactId>
-            <version>17.3</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.openjfx</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-api</artifactId>
             <version>${junit.version}</version>
@@ -134,7 +123,7 @@
                         <id>default-cli</id>
                         <configuration>
                             <mainClass>
-                                com.adanali.javafx.asynchronousimageprocessor/com.adanali.javafx.asynchronousimageprocessor.app.HelloApplication
+                                com.adanali.javafx.asynchronousimageprocessor/com.adanali.javafx.asynchronousimageprocessor.app.App
                             </mainClass>
                             <launcher>app</launcher>
                             <jlinkZipName>app</jlinkZipName>

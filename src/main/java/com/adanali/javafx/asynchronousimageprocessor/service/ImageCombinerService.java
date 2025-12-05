@@ -76,14 +76,6 @@ public enum ImageCombinerService implements Runnable{
             imageTrackers.remove(imageId);
             completedImages.add(fullImage);
         }
-
-        /*if (slice.getX() + slice.getWidth() >= slice.getTotalWidth() &&
-                slice.getY() + slice.getHeight() >= slice.getTotalHeight()) {
-
-            // Remove from in-progress and add to completed inputQueue
-            inProgressImages.remove(imageId);
-            completedImages.add(fullImage);
-        }*/
     }
 
     public Optional<WritableImage> pollCompletedImage() {

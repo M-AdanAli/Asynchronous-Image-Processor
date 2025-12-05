@@ -14,15 +14,23 @@ public enum ImageProcessingService{
 
     private final AtomicInteger imageCounter;
     private final BlockingQueue<ImageData> imageDataQueue;
+    private final Semaphore semaphore;
 
     ImageProcessingService(){
         imageCounter = new AtomicInteger(0);
         imageDataQueue = new LinkedBlockingQueue<>();
+        semaphore = new Semaphore(Runtime.getRuntime().availableProcessors());
     }
 
     public void processImage(WritableImage writableImage, ImageFilter imageFilter){
-        try(ForkJoinPool executorService = new ForkJoinPool(Runtime.getRuntime().availableProcessors())){
-            executorService.invoke(new ImageProcessingTask("img"+imageCounter.incrementAndGet(),writableImage,0,0,(int)writableImage.getWidth(),(int)writableImage.getHeight(),imageFilter,imageDataQueue));
+        try {
+            semaphore.acquire();
+            try(ForkJoinPool executorService = new ForkJoinPool(Runtime.getRuntime().availableProcessors())){
+                executorService.invoke(new ImageProcessingTask("img"+imageCounter.incrementAndGet(),writableImage,0,0,(int)writableImage.getWidth(),(int)writableImage.getHeight(),imageFilter,imageDataQueue));
+            }
+            semaphore.release();
+        }catch (InterruptedException e){
+            Thread.currentThread().interrupt();
         }
     }
 

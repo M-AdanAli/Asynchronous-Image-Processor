@@ -5,8 +5,10 @@ import com.adanali.javafx.asynchronousimageprocessor.model.ImageData;
 import com.adanali.javafx.asynchronousimageprocessor.service.FileSystemImageIOService;
 import com.adanali.javafx.asynchronousimageprocessor.service.ImageCombinerService;
 import com.adanali.javafx.asynchronousimageprocessor.service.ImageProcessingService;
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.image.Image;
@@ -14,6 +16,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
 import javafx.scene.layout.StackPane;
 import javafx.stage.FileChooser;
+import javafx.stage.Screen;
 import javafx.stage.Stage;
 
 import java.io.File;
@@ -22,6 +25,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Controller implements Initializable {
 
@@ -46,14 +51,17 @@ public class Controller implements Initializable {
 
     public void selectImage(){
         Stage currentStage = (Stage) button.getScene().getWindow();
-        try {
-            File imagePath = imageChooser.showOpenDialog(currentStage);
-            Optional<WritableImage> writableImage = new FileSystemImageIOService().readImage(imagePath);
-            writableImage.ifPresent(this::startProcessing);
-        }catch (IllegalArgumentException e){
-            System.err.println("Image not selected by the User.");
+        List<File> imagesPath = imageChooser.showOpenMultipleDialog(currentStage);
+        try (ExecutorService executorService = Executors.newFixedThreadPool(imagesPath.size());){
+            for (File imagePath: imagesPath){
+                executorService.execute(()->{
+                    Optional<WritableImage> writableImage = new FileSystemImageIOService().readImage(imagePath);
+                    writableImage.ifPresent(this::startProcessing);
+                });
+            }
+        }catch (NullPointerException | IllegalArgumentException e){
+            System.err.println("Image not selected by the user");
         }
-
     }
 
     public void startProcessing(WritableImage writableImage){
@@ -65,17 +73,33 @@ public class Controller implements Initializable {
     public void startCollecting(BlockingQueue<ImageData> imageDataQueue){
         ImageCombinerService.INSTANCE.start(imageDataQueue);
         Optional<WritableImage> writableImage = ImageCombinerService.INSTANCE.pollCompletedImage();
-        writableImage.ifPresent(this::showImage);
+        writableImage.ifPresent(img->Platform.runLater(()-> showImage(img)));
     }
 
     public void showImage(Image image){
         ImageView imageView = new ImageView(image);
-        StackPane root = new StackPane();
-        root.getChildren().add(imageView);
-        Scene scene = new Scene(root);
+        imageView.setPreserveRatio(true);
+        imageView.setSmooth(true);
+        double imgWidth = image.getWidth();
+        double imgHeight = image.getHeight();
+
+        Rectangle2D screen = Screen.getPrimary().getVisualBounds();
+        double maxWidth = screen.getWidth() * 0.9;
+        double maxHeight = screen.getHeight() * 0.9;
+
+        if (imgWidth > maxWidth || imgHeight > maxHeight) {
+            imageView.setFitWidth(maxWidth);
+            imageView.setFitHeight(maxHeight);
+        }
+
+        StackPane root = new StackPane(imageView);
+        Scene scene = new Scene(root,maxWidth,maxHeight);
+
         Stage stage = new Stage();
         stage.setScene(scene);
         stage.setTitle("Image Viewer");
+        stage.setMaxWidth(screen.getWidth());
+        stage.setMaxHeight(screen.getHeight());
         stage.show();
     }
 

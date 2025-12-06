@@ -8,12 +8,15 @@ import com.adanali.javafx.asynchronousimageprocessor.service.ImageProcessingServ
 import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Insets;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Screen;
@@ -55,7 +58,7 @@ public class Controller implements Initializable {
         try (ExecutorService executorService = Executors.newFixedThreadPool(imagesPath.size());){
             for (File imagePath: imagesPath){
                 executorService.execute(()->{
-                    Optional<WritableImage> writableImage = new FileSystemImageIOService().readImage(imagePath);
+                    Optional<WritableImage> writableImage = FileSystemImageIOService.INSTANCE.readImage(imagePath);
                     writableImage.ifPresent(this::startProcessing);
                 });
             }
@@ -76,10 +79,23 @@ public class Controller implements Initializable {
         writableImage.ifPresent(img->Platform.runLater(()-> showImage(img)));
     }
 
-    public void showImage(Image image){
+    public void showImage(WritableImage image){
         ImageView imageView = new ImageView(image);
         imageView.setPreserveRatio(true);
         imageView.setSmooth(true);
+
+        Button saveButton = new Button("Save");
+        saveButton.setOnAction(e->{
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Save Image");
+            FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("PNG files (*.png)", "*.png");
+            fileChooser.getExtensionFilters().add(extFilter);
+            File saveLocation = fileChooser.showSaveDialog(saveButton.getScene().getWindow());
+            if (saveLocation != null){
+                FileSystemImageIOService.INSTANCE.sendImage(image,saveLocation);
+            }
+        });
+
         double imgWidth = image.getWidth();
         double imgHeight = image.getHeight();
 
@@ -92,7 +108,17 @@ public class Controller implements Initializable {
             imageView.setFitHeight(maxHeight);
         }
 
-        StackPane root = new StackPane(imageView);
+
+        HBox top = new HBox(saveButton);
+        top.setSpacing(10);
+        top.setPadding(new Insets(8));
+
+        StackPane imagePane = new StackPane(imageView);
+
+        BorderPane root = new BorderPane();
+        root.setTop(top);
+        root.setCenter(imagePane);
+
         Scene scene = new Scene(root,maxWidth,maxHeight);
 
         Stage stage = new Stage();

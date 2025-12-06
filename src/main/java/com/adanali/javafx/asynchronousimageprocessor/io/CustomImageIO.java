@@ -8,5 +8,5 @@ public interface CustomImageIO<T>{
 
     Optional<WritableImage> readImage(T src);
 
-    void sendImage(WritableImage writableImage,T target);
+    boolean sendImage(WritableImage writableImage,T target);
 }
